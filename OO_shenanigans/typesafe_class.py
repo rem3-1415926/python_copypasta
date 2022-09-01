@@ -1,4 +1,4 @@
-#  import
+# -*- coding: utf-8 -*-
 
 def getter_setter_gen(name, type_, do_typecast):
 	def getter(self):
@@ -18,14 +18,13 @@ def auto_attr_check(cls=None, do_typecast=True):
 	Default case: try to typecast into desired type. Use `do_typecast=False` 
 	to instead raise an error on type mismatch at assignment 
 	(applies to entire class as a whole)"""
+	from typing import get_type_hints
+
 	def wrapper(cls):
-		new_dct = {}
-		for key, value in cls.__dict__.items():
-			if isinstance(value, type):
-				value = getter_setter_gen(key, value, do_typecast)
-			new_dct[key] = value
-		# Creates a new class, using the modified dictionary as the class dict:
-		return type(cls)(cls.__name__, cls.__bases__, new_dct)
+		for attr, type_ in get_type_hints(cls).items():
+			setattr(cls, attr, getter_setter_gen(attr, type_, do_typecast))
+
+		return cls
 
 	if cls == None: return wrapper
 	else:           return wrapper(cls)
@@ -35,8 +34,8 @@ def auto_attr_check(cls=None, do_typecast=True):
 
 @auto_attr_check
 class A:
-	a = int 
-	b = float
+	a : int 
+	b : float
 
 obj = A()
 obj.a = 3
@@ -47,8 +46,8 @@ print(f"sum of A: {obj.a=} + {obj.b=} = {obj.a + obj.b}")
 
 @auto_attr_check(do_typecast=True)
 class B:
-	a = int 
-	b = float
+	a : int 
+	b : float
 
 	def __init__(self):
 		self.a = 4
@@ -62,8 +61,8 @@ print(f"sum of B: {obj.a=} + {obj.b=} = {obj.a + obj.b}")
 
 @auto_attr_check(do_typecast=False)
 class C:
-	a = int 
-	b = float
+	a : int 
+	b : float
 
 obj = C()
 try:
@@ -73,3 +72,15 @@ try:
 except TypeError as e:
 	print("Error raised, as expected:")
 	print(e)
+
+# -----------------------------------------------------------------------------
+from dataclasses import dataclass
+
+@auto_attr_check
+@dataclass
+class D:
+	a : int 
+	b : float
+
+obj = D(6, "7.1")
+print(f"sum of D: {obj.a=} + {obj.b=} = {obj.a + obj.b}")
